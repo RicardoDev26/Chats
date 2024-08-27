@@ -1,0 +1,5 @@
+app.post('/api/canales/invitar',(req,res)=>{
+  const { sala_id, user_id, invitado_id } = req.body
+
+  res.json({ message: "Invitacion creada con exito." })
+})
