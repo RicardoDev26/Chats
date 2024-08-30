@@ -141,7 +141,7 @@ const JoinUser = async () => {
 
     if(unirseSala.ok) {
       localStorage.setItem('salaId', roomUUID.value)
-      localStorage.setItem('userId', userData.usuario)
+      // localStorage.setItem('usuario', userData.usuario)
       router.push({ name: 'salaChat', params: { salaId: roomUUID.value } })
     }
   } catch (error) {

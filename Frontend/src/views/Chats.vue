@@ -3,9 +3,7 @@
       <section class="w-[580px] h-screen bg-[#212121] text-white">
         <div class="text-center p-2"> User Online </div>
         <div class="flex flex-col gap-1 px-5"> 
-          <div v-for="user in sortedUsers" :key="user.id">
-              {{ user.usuario }}
-          </div>
+    
         </div>
 
       </section>
@@ -23,8 +21,8 @@
                       textAlign: message.user_id === MyuserId ? 'right' : 'left'
                     }"
                     >
-                    <p class="bg-black text-white rounded-xl px-2">{{ message.usuario }} : {{ message.mensaje }}</p>
-                    <span class="text-white text-xs">{{ new Date(message.timestamp).toLocaleTimeString() }}</span>
+                    <p class=" text-white max-w-[450px] rounded-xl px-2">{{ message.usuario }} : {{ message.mensaje }}</p>
+                    <span class="text-white text-xs">{{ new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</span>
                   </div>
                 </div>
                 <div class="flex gap-1">
@@ -40,21 +38,23 @@
   <script setup>
   import fondo from '../assets/descarga.png'
   import send from '../assets/send.vue'
-  import { onMounted, onUnmounted, ref, computed } from 'vue';
+  import { onMounted, onUnmounted, ref } from 'vue';
   import { io } from 'socket.io-client'
+  import { useRoute } from 'vue-router';
 
   const mensajes = ref([])
   const MyuserId = ref(localStorage.getItem('userId') || '')
   const newMessage = ref('')
   const salaId = ref(localStorage.getItem('salaId') || '')
   const socket = io('http://localhost:3001')
-  const users = ref([]) 
+  // const users = ref([]) 
+  const route = useRoute()
+  const usernameMsg = ref (localStorage.getItem('usuario') || '')
 
-  const sortedUsers = computed(() => {
-  const myUser = users.value.find(user => user.id === MyuserId.value)
-  const otherUsers = users.value.filter(user => user.id !== MyuserId.value)
-  return myUser ? [myUser, ...otherUsers] : otherUsers
-})
+  onMounted(() => {
+  const salaId = route.params.salaId
+  localStorage.setItem('salaId', salaId)
+});
 
 // console.log(MyuserId.value)
 // console.log(salaId.value)
@@ -73,18 +73,18 @@
       }
     };
 
-  const fetchUsuarios = async () => {
-    try {
-      const response = await fetch(`http://localhost:3001/api/usuarios/${salaId.value}`)
-      if (response.ok) {
-        users.value = await response.json()
-      } else {
-        console.error('Error al cargar los usuarios')
-      }
-    } catch (error) {
-      console.error('Error al conectar con el servidor:', error)
-    }
-};
+//   const fetchUsuarios = async () => {         AUN ESTA EN BETA LOS USUARIOS ONLINE
+//     try {
+//       const response = await fetch(`http://localhost:3001/api/usuarios/${salaId.value}`)
+//       if (response.ok) {
+//         users.value = await response.json()
+//       } else {
+//         console.error('Error al cargar los usuarios')
+//       }
+//     } catch (error) {
+//       console.error('Error al conectar con el servidor:', error)
+//     }
+// };
 
     const sendMenssage = async () => {
       if (!newMessage.value) return
@@ -98,12 +98,13 @@
           body: JSON.stringify({
             salaId: salaId.value,
             userId: MyuserId.value,
-            mensaje: newMessage.value
+            mensaje: newMessage.value,
+            usuario: usernameMsg.value
           })
         });
         if(response.ok) {
-          const   newMsg = await response.json()
-          mensajes.value.unshift(newMsg)
+          // const   newMsg = await response.json()
+          // mensajes.value.unshift(newMsg)
           newMessage.value = ''
         } else {
           console.error('Error al enviar el mensaje')
@@ -115,15 +116,15 @@
 
     onMounted(() => {
   fetchMensajes()
-  fetchUsuarios()
+  // fetchUsuarios()
 
   socket.emit('join_room', salaId.value)
   socket.on('receive_message', (messageData) => {
     mensajes.value.push(messageData)
   })
-  socket.on('update_users', (userList) => {
-    users.value = userList
-  })
+  // socket.on('update_users', (userList) => {
+  //   users.value = userList
+  // })
 })
 
 onUnmounted(() => {
@@ -148,5 +149,18 @@ onUnmounted(() => {
   height: calc(100vh - 120px);
   padding: 10px;
 }
+
+.my-message {
+  display: flex;
+  flex-direction: column;
+  align-items: end;
+} 
+
+.guest-message {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+}
+
 
 </style>

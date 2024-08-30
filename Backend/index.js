@@ -5,7 +5,8 @@ const { v4: uuidv4 } = require('uuid');
 const cors = require('cors');
 const { startClient, sendMessageToTelegram } = require ('./telegramService')
 const http = require('http')
-const { Server } = require ('socket.io')
+const { Server } = require ('socket.io');
+const { timeStamp } = require('console');
 
 dotenv.config()
 
@@ -157,15 +158,17 @@ app.get('/api/canales/:salaId', async (req, res) => {
 });
 
 app.post('/api/mensajes', async (req, res) => {
-  const { salaId, userId, mensaje } = req.body
+  const { salaId, userId, mensaje, usuario } = req.body
 
   try {
-    const result = await pool.query(`
-      INSERT INTO mensajes (sala_id, user_id, mensaje)
-      VALUES ((SELECT id FROM canales WHERE sala_id = $1), $2, $3)
-      RETURNING id, sala_id, user_id, mensaje, timestamp`, [salaId, userId, mensaje])
       
-      const newMessage = result.rows[0];
+      const newMessage = {
+        sala_id: salaId,
+        user_id: userId,
+        mensaje: mensaje,
+        timestamp: new Date().toISOString(),
+        usuario: usuario,
+      };
 
       io.to(salaId).emit('receive_message', newMessage);
       await sendMessageToTelegram(mensaje);
