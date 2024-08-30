@@ -1,23 +1,35 @@
 <template>
-    <section class="flex w-full h-screen bg-[#f69d9d]">
-      <section class="w-[580px] h-full bg-white">
+    <section class="flex w-full h-full gap-[1px]">
+      <section class="w-[580px] h-screen bg-[#212121] text-white">
+        <div class="text-center p-2"> User Online </div>
+        <div class="flex flex-col gap-1 px-5"> 
+          <div v-for="user in sortedUsers" :key="user.id">
+              {{ user.usuario }}
+          </div>
+        </div>
 
       </section>
-      <section class="w-full h-full">
-        <div :style="{ backgroundImage: `url(${fondo})` }" class="fondotelegram bg-cover bg-center bg-no-repeat rounded-md w-full h-full flex opacity-40 px-[210px]">
-            <div class="chat flex flex-col w-full gap-1 pb-4">
+      <section class="w-full h-screen flex flex-col">
+        <div class="bg-[#212121] text-white text-center w-full h-[90px] p-3"> RoomId:  {{ salaId }}</div> 
+        <div :style="{ backgroundImage: `url(${fondo})` }" class="fondotelegram bg-[#281437] bg-cover bg-center bg-no-repeat w-full h-full flex opacity-100 px-[210px]">  
+          <div class="chat flex flex-col w-full gap-1 pb-4">
                 <div class="mensajes h-full">
                   <div
                     v-for="message in mensajes"
                     :key="message.id"
-                    :class="{'my-message': message.user_id === myUserId, 'guest-message': message.user_id !== myUserId}">
-                    <p>{{ message.mensaje }}</p>
-                    <span>{{ new Date(message.timestamp).toLocaleTimeString() }}</span>
+                    :class="{'my-message': message.user_id === MyuserId, 
+                    'guest-message': message.user_id !== MyuserId}"
+                    :style="{
+                      textAlign: message.user_id === MyuserId ? 'right' : 'left'
+                    }"
+                    >
+                    <p class="bg-black text-white rounded-xl px-2">{{ message.usuario }} : {{ message.mensaje }}</p>
+                    <span class="text-white text-xs">{{ new Date(message.timestamp).toLocaleTimeString() }}</span>
                   </div>
                 </div>
                 <div class="flex gap-1">
-                    <input v-model="newMessage" @keyup.enter="sendMenssage" type="text" placeholder="Mensaje" class="w-full h-[50px] rounded-2xl outline-none p-4">
-                    <button @click="sendMenssage" class="rounded-full bg-[#f45b5b] w-[45px] h-[45px] flex justify-center items-center"> <send class="text-white" /> </button>
+                    <input v-model="newMessage" @keyup.enter="sendMenssage" type="text" placeholder="Mensaje" class="bg-[#212121] text-white w-full h-[50px] rounded-2xl outline-none p-4">
+                    <button @click="sendMenssage" class="rounded-full bg-[#7963DD] w-[45px] h-[45px] flex justify-center items-center"> <send class="text-white" /> </button>
                 </div>
             </div>
         </div>
@@ -28,19 +40,25 @@
   <script setup>
   import fondo from '../assets/descarga.png'
   import send from '../assets/send.vue'
-  import { onMounted, ref } from 'vue';
+  import { onMounted, onUnmounted, ref, computed } from 'vue';
+  import { io } from 'socket.io-client'
 
   const mensajes = ref([])
-  const MyuserId = ref(localStorage.getItem('MyuserID') || '')
+  const MyuserId = ref(localStorage.getItem('userId') || '')
   const newMessage = ref('')
-  const salaId = ref(localStorage.getItem('SalaId') || '')
+  const salaId = ref(localStorage.getItem('salaId') || '')
+  const socket = io('http://localhost:3001')
+  const users = ref([]) 
 
-console.log(MyuserId.value)
-console.log(salaId.value)
+  const sortedUsers = computed(() => {
+  const myUser = users.value.find(user => user.id === MyuserId.value)
+  const otherUsers = users.value.filter(user => user.id !== MyuserId.value)
+  return myUser ? [myUser, ...otherUsers] : otherUsers
+})
 
-  if (!MyuserId.value || !salaId.value) {
-    console.error('Error EL usuario y sala no ewtas definidos')
-  } else {
+// console.log(MyuserId.value)
+// console.log(salaId.value)
+
 
     const fetchMensajes = async () => {
       try {
@@ -53,7 +71,20 @@ console.log(salaId.value)
       } catch (error) {
         console.error('Error al conectar con el servidor:', error)
       }
+    };
+
+  const fetchUsuarios = async () => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/usuarios/${salaId.value}`)
+      if (response.ok) {
+        users.value = await response.json()
+      } else {
+        console.error('Error al cargar los usuarios')
+      }
+    } catch (error) {
+      console.error('Error al conectar con el servidor:', error)
     }
+};
 
     const sendMenssage = async () => {
       if (!newMessage.value) return
@@ -71,8 +102,8 @@ console.log(salaId.value)
           })
         });
         if(response.ok) {
-          const  newMsg = await response.json()
-          mensajes.value.push(nuevoMsg)
+          const   newMsg = await response.json()
+          mensajes.value.unshift(newMsg)
           newMessage.value = ''
         } else {
           console.error('Error al enviar el mensaje')
@@ -80,12 +111,24 @@ console.log(salaId.value)
       } catch (error) {
         console.error('Error al conectar con el servicor:', error)
       }
-    }
+    };
 
     onMounted(() => {
-      fetchMensajes()
-    })
-  }
+  fetchMensajes()
+  fetchUsuarios()
+
+  socket.emit('join_room', salaId.value)
+  socket.on('receive_message', (messageData) => {
+    mensajes.value.push(messageData)
+  })
+  socket.on('update_users', (userList) => {
+    users.value = userList
+  })
+})
+
+onUnmounted(() => {
+  socket.disconnect()
+})
 
   
   
@@ -97,5 +140,13 @@ console.log(salaId.value)
     color: rgb(150, 150, 150);
     opacity: 1;
   }
+
+  .mensajes {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto; 
+  height: calc(100vh - 120px);
+  padding: 10px;
+}
 
 </style>

@@ -3,15 +3,60 @@ const { Pool } = require('pg')
 const dotenv = require('dotenv')
 const { v4: uuidv4 } = require('uuid');
 const cors = require('cors');
-
+const { startClient, sendMessageToTelegram } = require ('./telegramService')
+const http = require('http')
+const { Server } = require ('socket.io')
 
 dotenv.config()
 
 const app = express();
 app.use(express.json());
+const server = http.createServer(app)
+const io = new Server(server, {
+  cors: {
+    origin: 'http://localhost:5173', 
+    methods: ['GET', 'POST'],
+    credentials: true, 
+  },
+});
 
+const rooms = {};
 
-app.use(cors());
+io.on('connection', (socket) => {
+  console.log('Nuevo cliente conectado')
+
+  socket.on('join_room', async (salaId) => {
+    socket.join(salaId)
+
+    if (!rooms[salaId]) {
+      rooms[salaId] = []
+    }
+    rooms[salaId].push({ id: socket.id, userId: socket.handshake.query.userId })
+
+    io.to(salaId).emit('update_users', rooms[salaId])
+
+    try {
+      const result = await pool.query('SELECT * FROM mensajes WHERE sala_id = $1 ORDER BY timestamp ASC', [salaId])
+      socket.emit('old_messages', result.rows)
+    } catch (error) {
+      console.error('Error al obtener los mensajes:', error)
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Cliente desconectado')
+    for (const salaId in rooms) {
+      rooms[salaId] = rooms[salaId].filter(user => user.id !== socket.id)
+      io.to(salaId).emit('update_users', rooms[salaId])
+    }
+  });
+});
+
+app.use(cors({
+  origin: 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], 
+  credentials: true, 
+}));
 
 const pool = new Pool({
     host: process.env.DB_HOST,
@@ -119,8 +164,13 @@ app.post('/api/mensajes', async (req, res) => {
       INSERT INTO mensajes (sala_id, user_id, mensaje)
       VALUES ((SELECT id FROM canales WHERE sala_id = $1), $2, $3)
       RETURNING id, sala_id, user_id, mensaje, timestamp`, [salaId, userId, mensaje])
+      
+      const newMessage = result.rows[0];
 
-    res.status(201).json(result.rows[0])
+      io.to(salaId).emit('receive_message', newMessage);
+      await sendMessageToTelegram(mensaje);
+
+    res.status(201).json(newMessage)
   } catch (error) {
     console.error('Error al enviar el mensaje:', error.stack)
     res.status(500).send('Error al enviar el mensaje')
@@ -142,5 +192,27 @@ app.get('/api/mensajes/:salaId', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3001;
-app.listen( PORT, ()=> console.log(`server corriendo en el puerto ${PORT}`));
+app.get('/api/usuarios/:salaId', async (req, res) => {
+  const { salaId } = req.params;
+  try {
+    const result = await pool.query(`
+      SELECT u.user_id, u.usuario
+      FROM miembros_sala ms
+      JOIN usuarios u ON u.user_id = ms.user_id
+      WHERE ms.sala_id = $1
+    `, [salaId]);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error al obtener los usuarios:', error);
+    res.status(500).json({ error: 'Error al obtener los usuarios' });
+  }
+});
+
+
+startClient().catch(console.error);
+
+server.listen(3001, () => {
+  console.log('Server running on http://localhost:3001')
+})
+// const PORT = process.env.PORT || 3001;
+// app.listen( PORT, ()=> console.log(`server corriendo en el puerto ${PORT}`));
