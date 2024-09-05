@@ -1,5 +1,58 @@
-app.post('/api/canales/invitar',(req,res)=>{
-  const { sala_id, user_id, invitado_id } = req.body
+const sendMenssage = async () => {
+  if (!newMessage.value) return
 
-  res.json({ message: "Invitacion creada con exito." })
+  try {
+    const response = await fetch ('http://localhost:3001/api/mensajes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        salaId: salaId.value,
+        parsedUserId: MyuserId.value,
+        mensaje: newMessage.value,
+        // usuario: usernameMsg.value
+      })
+    });
+    if(response.ok) {
+      // const   newMsg = await response.json()
+      // mensajes.value.unshift(newMsg)
+      newMessage.value = ''
+    } else {
+      console.error('Error al enviar el mensaje')
+    }
+  } catch (error) {
+    console.error('Error al conectar con el servicor:', error)
+  }
+};  app.post('/api/mensajes', async (req, res) => {
+const { salaId, userId, mensaje } = req.body
+
+const parsedUserId = parseInt(userId, 10)
+if (isNaN(parsedUserId)) {
+return res.status(400).send('Invalid user ID')
+}
+
+try {
+const newMessage = {
+  sala_id: salaId,
+  user_id: parsedUserId,
+  mensaje: mensaje,
+  timestamp: new Date().toISOString(),
+}
+
+const result = await pool.query(`
+  INSERT INTO mensajes (sala_id, user_id, mensaje, timestamp)
+  VALUES ($1::uuid, $2, $3, $4)
+  RETURNING id, sala_id, user_id, mensaje, timestamp
+`, [newMessage.sala_id, newMessage.user_id, newMessage.mensaje, newMessage.timestamp])
+
+io.to(salaId).emit('receive_message', result.rows[0])
+
+await sendMessageToTelegram(mensaje)
+
+res.status(201).json(result.rows[0])
+} catch (error) {
+console.error('Error al enviar el mensaje:', error.stack)
+res.status(500).send('Error al enviar el mensaje')
+}
 })

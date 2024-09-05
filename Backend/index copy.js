@@ -83,21 +83,20 @@ app.post('/api/registro', async (req, res) => {
     `, [`${usuario}%`])
 
     const count = parseInt(countResult.rows[0].count, 10)
-    const usuarioConHex = `${usuario}#${count + 1}`
+    const userHexId = (count + 1).toString(16)
+    const usuarioConHex = `${usuario}#${userHexId}`
 
     const result = await pool.query(`
       INSERT INTO usuarios (usuario)
       VALUES ($1)
-      RETURNING user_id, usuario
+      RETURNING TO_HEX(user_id::int) AS user_id, usuario
     `, [usuarioConHex])
-
     res.status(201).json(result.rows[0])
   } catch (err) {
     console.error('Error al crear usuario:', err.stack)
     res.status(500).send('Error al crear el usuario')
   }
 })
-
 
 app.post('/api/canales/crear', async (req, res) => {
   const salaId = uuidv4()
@@ -118,16 +117,17 @@ app.post('/api/canales/crear', async (req, res) => {
 app.post('/api/canales/unirse', async (req, res) => {
   const { sala_id, user_id } = req.body
 
-  // const parsedUserId = parseInt(user_id, 10)
-  // if (isNaN(parsedUserId)) {
-  //   return res.status(400).send('Invalid user ID')
-  // }
+  const parsedUserId = parseInt(user_id, 10)
+  if (isNaN(parsedUserId)) {
+    return res.status(400).send('Invalid user ID')
+  }
+
   try {
     const result = await pool.query(`
       INSERT INTO miembros_sala (sala_id, user_id)
       VALUES ($1::uuid, $2)
       RETURNING id, sala_id, user_id
-    `, [sala_id, user_id])
+    `, [sala_id, parsedUserId])
 
     res.status(201).json(result.rows[0])
   } catch (error) {
@@ -154,36 +154,36 @@ app.get('/api/canales/:salaId', async (req, res) => {
 
 app.post('/api/mensajes', async (req, res) => {
   const { salaId, userId, mensaje } = req.body
-
-  if (!userId) {
+  
+  const parsedUserId = parseInt(userId, 10)
+  if (isNaN(parsedUserId)) {
     return res.status(400).send('Invalid user ID')
   }
 
   try {
     const newMessage = {
       sala_id: salaId,
-      user_id: userId,
+      user_id: parsedUserId,
       mensaje: mensaje,
       timestamp: new Date().toISOString(),
-    };
+    }
 
-    // const result = await pool.query(`
-    //   INSERT INTO mensajes (sala_id, user_id, mensaje, timestamp)
-    //   VALUES ($1::uuid, $2, $3, $4)
-    //   RETURNING id, sala_id, user_id, mensaje, timestamp
-    // `, [newMessage.sala_id, newMessage.user_id, newMessage.mensaje, newMessage.timestamp])
+    const result = await pool.query(`
+      INSERT INTO mensajes (sala_id, user_id, mensaje, timestamp)
+      VALUES ($1::uuid, $2, $3, $4)
+      RETURNING id, sala_id, user_id, mensaje, timestamp
+    `, [newMessage.sala_id, newMessage.user_id, newMessage.mensaje, newMessage.timestamp])
 
-    io.to(salaId).emit('receive_message', newMessage)
+    io.to(salaId).emit('receive_message', result.rows[0])
 
     await sendMessageToTelegram(mensaje)
 
-    res.status(201).json(newMessage)
+    res.status(201).json(result.rows[0])
   } catch (error) {
     console.error('Error al enviar el mensaje:', error.stack)
     res.status(500).send('Error al enviar el mensaje')
   }
-});
-
+})
 
 app.get('/api/mensajes/:salaId', async (req, res) => {
   const { salaId } = req.params

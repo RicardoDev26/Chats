@@ -15,13 +15,16 @@
                   <div
                     v-for="message in mensajes"
                     :key="message.id"
-                    :class="{'my-message': message.user_id === MyuserId, 
-                    'guest-message': message.user_id !== MyuserId}"
+                    :class="{'my-message': message.user_id.toLowerCase() === MyuserId.toLowerCase(), 
+                    'guest-message': message.user_id.toLowerCase() !== MyuserId.toLowerCase()}"
                     :style="{
                       textAlign: message.user_id === MyuserId ? 'right' : 'left'
                     }"
                     >
-                    <p class=" text-white max-w-[450px] rounded-xl px-2">{{ message.usuario }} : {{ message.mensaje }}</p>
+                    <p class="flex flex-col">
+                      <span class="text-white font-black text-lg">{{ message.user_id }}:</span>
+                      <span class=" text-white max-w-[450px] rounded-xl px-2 break-words">{{ message.mensaje }}</span>
+                    </p>
                     <span class="text-white text-xs">{{ new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</span>
                   </div>
                 </div>
@@ -38,7 +41,7 @@
   <script setup>
   import fondo from '../assets/descarga.png'
   import send from '../assets/send.vue'
-  import { onMounted, onUnmounted, ref } from 'vue';
+  import { onMounted, onUnmounted, ref, nextTick, watch } from 'vue';
   import { io } from 'socket.io-client'
   import { useRoute } from 'vue-router';
 
@@ -49,7 +52,7 @@
   const socket = io('http://localhost:3001')
   // const users = ref([]) 
   const route = useRoute()
-  const usernameMsg = ref (localStorage.getItem('usuario') || '')
+  // const usernameMsg = ref (localStorage.getItem('usuario') || '')
 
   onMounted(() => {
   const salaId = route.params.salaId
@@ -99,7 +102,7 @@
             salaId: salaId.value,
             userId: MyuserId.value,
             mensaje: newMessage.value,
-            usuario: usernameMsg.value
+            // usuario: usernameMsg.value
           })
         });
         if(response.ok) {
@@ -131,8 +134,7 @@ onUnmounted(() => {
   socket.disconnect()
 })
 
-  
-  
+console.log(MyuserId.value)
   </script>
   
 
