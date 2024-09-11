@@ -55,8 +55,13 @@
   // const usernameMsg = ref (localStorage.getItem('usuario') || '')
 
   onMounted(() => {
-  const salaId = route.params.salaId
-  localStorage.setItem('salaId', salaId)
+  const currentSalaId = route.params.salaId
+  salaId.value = currentSalaId
+  localStorage.setItem('salaId', currentSalaId)
+
+  MyuserId.value = localStorage.getItem('userId');
+
+  socket.emit('join_room', { salaId: salaId.value, userId: MyuserId.value });
 });
 
 // console.log(MyuserId.value)
@@ -118,16 +123,16 @@
     };
 
     onMounted(() => {
-  fetchMensajes()
-  // fetchUsuarios()
+      fetchMensajes()
+      // fetchUsuarios()
 
-  socket.emit('join_room', salaId.value)
-  socket.on('receive_message', (messageData) => {
-    mensajes.value.push(messageData)
-  })
-  // socket.on('update_users', (userList) => {
-  //   users.value = userList
-  // })
+      socket.emit('join_room', salaId.value)
+      socket.on('receive_message', (messageData) => {
+        mensajes.value.push(messageData)
+      })
+      // socket.on('update_users', (userList) => {
+      //   users.value = userList
+      // })
 })
 
 onUnmounted(() => {

@@ -68,25 +68,24 @@
   const error = ref(null)
  
 
-  const crearSala = async () => {
-    try {
-      const response = await fetch ('http://localhost:3001/api/canales/crear', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-      })
-      const data = await response.json()
-      roomId.value = data.sala_id
+  const crearSala = () => {
       showUserInput.value = true
-      localStorage.setItem('salaId', roomId.value)
-    } catch (error) {
-      console.error('Error al crear la sala:', error)
-    }
   };
 
   const registerUser = async () => {
     try {
+          const crearSalaa = await fetch ('http://localhost:3001/api/canales/crear', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+          })
+          const data = await crearSalaa.json()
+            roomId.value = data.sala_id
+            localStorage.setItem('salaId', roomId.value)
+         
+          
+
       const response = await fetch('http://localhost:3001/api/registro', {
         method: 'POST',
         headers: {
