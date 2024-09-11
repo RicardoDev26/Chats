@@ -23,18 +23,18 @@ const io = new Server(server, {
 const rooms = {}
 
 io.on('connection', (socket) => {
-  console.log('Nuevo cliente conectado')
+  console.log('Nuevo usuario conectado')
 
-  socket.on('join_room', async (salaId) => {
+  socket.on('join_room', async ({ salaId, userId }) => {
     socket.join(salaId)
-
+  
     if (!rooms[salaId]) {
       rooms[salaId] = []
     }
-    rooms[salaId].push({ id: socket.id, userId: socket.handshake.query.userId })
-
+    rooms[salaId].push({ id: socket.id, userId })
+  
     io.to(salaId).emit('update_users', rooms[salaId])
-
+  
     try {
       const result = await pool.query('SELECT * FROM mensajes WHERE sala_id = $1 ORDER BY timestamp ASC', [salaId])
       socket.emit('old_messages', result.rows)
