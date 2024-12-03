@@ -1,7 +1,9 @@
--- Instalar extensión para UUID
+
+
+
+
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Crear tablas
 CREATE TABLE IF NOT EXISTS canales (
     id SERIAL PRIMARY KEY,
     sala_id UUID DEFAULT uuid_generate_v4() NOT NULL UNIQUE
