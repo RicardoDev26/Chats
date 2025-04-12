@@ -74,7 +74,7 @@
 
   const registerUser = async () => {
     try {
-          const crearSalaa = await fetch ('http://localhost:80/api/canales/crear', {
+          const crearSalaa = await fetch ('http://localhost:3001/api/canales/crear', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -86,7 +86,7 @@
          
           
 
-      const response = await fetch('http://localhost:80/api/registro', {
+      const response = await fetch('http://localhost:3001/api/registro', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -95,7 +95,7 @@
       })
       const userData = await response.json()
 
-      const unirseSala = await fetch('http://localhost:80/api/canales/unirse', {
+      const unirseSala = await fetch('http://localhost:3001/api/canales/unirse', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -118,7 +118,7 @@
 
 const JoinUser = async () => {
   try {
-    const  response = await fetch ('http://localhost:80/api/registro', {
+    const  response = await fetch ('http://localhost:3001/api/registro', {
       method: 'POST',
       headers: {
         'Content-type': 'application/json'
@@ -127,7 +127,7 @@ const JoinUser = async () => {
     })
     const userData = await response.json()
 
-    const unirseSala = await fetch ('http://localhost:80/api/canales/unirse', {
+    const unirseSala = await fetch ('http://localhost:3001/api/canales/unirse', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

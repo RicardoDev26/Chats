@@ -1,0 +1,9 @@
+Corre este comando local para crear una base de datos en postgress //
+
+sudo docker run -d --name postgres_db \
+  -e POSTGRES_USER=richi \
+  -e POSTGRES_PASSWORD=richi \
+  -e POSTGRES_DB=mydatabase \
+  -p 5432:5432 \
+  -v postgres_data:/var/lib/postgresql/data \
+  postgres:13

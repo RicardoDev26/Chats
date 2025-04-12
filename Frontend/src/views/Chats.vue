@@ -70,7 +70,7 @@
 
     const fetchMensajes = async () => {
       try {
-      const response = await fetch (`http://localhost:80/api/mensajes/${salaId.value}`)
+      const response = await fetch (`http://localhost:3001/api/mensajes/${salaId.value}`)
       if(response.ok) {
         mensajes.value = await response.json()
       } else {
@@ -98,7 +98,7 @@
       if (!newMessage.value) return
 
       try {
-        const response = await fetch ('http://localhost:80/api/mensajes', {
+        const response = await fetch ('http://localhost:3001/api/mensajes', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

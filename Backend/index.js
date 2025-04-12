@@ -14,7 +14,8 @@ app.use(express.json())
 const server = http.createServer(app)
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173',
+    // origin: 'http://localhost:4173',
+    origin: '*',
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -53,7 +54,8 @@ io.on('connection', (socket) => {
 })
 
 app.use(cors({
-  origin: 'http://localhost:5173',
+  // origin: 'http://localhost:4173',
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true,
 }))
@@ -202,6 +204,6 @@ app.get('/api/mensajes/:salaId', async (req, res) => {
 
 startClient().catch(console.error)
 
-server.listen(3001, () => {
+server.listen(3001, '0.0.0.0', () => {
   console.log('Server running on http://localhost:3001')
 })

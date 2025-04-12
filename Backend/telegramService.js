@@ -1,10 +1,15 @@
 const { TelegramClient } = require('telegram');
+const fs = require('fs');
 const { StringSession } = require('telegram/sessions');
 const readline = require('readline');
+const dotenv = require('dotenv')
+
+dotenv.config()
 
 const apiId = process.env.apiId 
-const apiHash = process.send.apiHash
-const stringSession = new StringSession('');
+const apiHash = process.env.API_HASH
+const stringSession = new StringSession(fs.existsSync('./session.txt') ? fs.readFileSync('./session.txt', 'utf-8') : '');
+
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -23,6 +28,10 @@ async function startClient() {
             phoneCode: async () => new Promise((resolve) => rl.question('Please enter the code you received: ', resolve)),
             onError: (err) => console.log(err),
         });
+
+        const sessionString = client.session.save();
+        fs.writeFileSync('./session.txt', sessionString);
+
 
         console.log('You should now be connected.');
         console.log(client.session.save());
